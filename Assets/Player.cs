@@ -3,13 +3,23 @@ using System.Collections;
 
 public class Player : MonoBehaviour {
 	
+	const int TOP = 1;
+	const int LEFT = 2;
+	const int RIGHT = 4;
+	const int BOTTOM = 8;
+	
+	int allCollisions = 0;
+	
+	
 	public ParticleSystem emitter;
 	public float JumpForce = 1f;
 	public float DownForce = .1f;
 	public float upGrav = 9.8f;
 	public float downGrav = 9.8f;
+	public float goSpeed = .5f;
+	public GameObject handLocation;
 	
-	enum state {JUMPING, FALLING, SETTOJUMP, GRAPPLED};
+	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED};
 	enum secondary {NONE,SHOT, RELEASED};
 	
 	state now = state.SETTOJUMP;
@@ -18,24 +28,39 @@ public class Player : MonoBehaviour {
 	
 	Vector3 currentMovement;
 	
-	bool barRenewal = true;  //if the user voluntarily releases, the alien won't regrab until clear of the bar
-	//true means he will grab the bar
+	bool nearBar = false;
 	
-	public bool nearBar = false;
-	public bool bodyBar = false;
-	bool readyToGrab = false;
+	bool onGround;
+	public bool isGrounded
+	{
+		get{
+			return onGround;
+		}
+	}
+
+	Vector3 oldHandLoc;
+	
+	Transform barStart;
+	Transform barEnd;
 	
 	// Use this for initialization
 	void Start () {
 		last = now;
 		currentMovement =new Vector3(0,0,0);
 		
+		//log old hand local location
+		oldHandLoc = handLocation.transform.localPosition;
+			
 	}
+	
 	
 	// Update is called once per frame
 	void Update () {
 		
-		CharacterController physicall = (CharacterController)this.GetComponent("CharacterController");
+		CapsuleCollider physicall = (CapsuleCollider)this.GetComponent("CapsuleCollider");
+		
+		currentMovement.x = goSpeed;
+
 		
 		Ray mouseLine = Camera.mainCamera.ScreenPointToRay(Input.mousePosition);
 		RaycastHit stuff;
@@ -45,8 +70,23 @@ public class Player : MonoBehaviour {
 		//Debug.Log("Grabber is layer :" + (LayerMask.NameToLayer("grabber").ToString())+ " from " + Camera.mainCamera.ToString() + "originating"
 		//	+ mouseLine.origin.ToString());
 		
+		
+		//should I grab a bar?  Where should I stick if I do?
+		if(nearBar && state2 != secondary.RELEASED && now != state.GRAPPLED)
+		{
+			Debug.Log("latched...");
+			Vector3 movement = handLocation.transform.position - barStart.transform.position;
+			currentMovement +=movement;
+			
+			//move the hand to line up with the bar.
+			//TEST: make it go to start
+			
+			//change the state to recognize the gwapplin'
+			now = state.GRAPPLED;
+		}
+		
 		//check for click action
-		if(Input.GetMouseButtonDown(0) && now == state.SETTOJUMP)
+		if(Input.GetMouseButtonDown(0) && (now == state.SETTOJUMP || now == state.GRAPPLED))
 		{
 			//check for hit
 			if(Physics.Raycast(mouseLine, out stuff, Mathf.Infinity))
@@ -69,7 +109,7 @@ public class Player : MonoBehaviour {
 			{
 				//start of jump, apply force
 				currentMovement.y = JumpForce; 
-				physicall.Move(currentMovement);
+				
 			}
 			else
 			{	//starting to fallllll
@@ -79,14 +119,17 @@ public class Player : MonoBehaviour {
 					now = state.FALLING;
 				}
 				//bumped head, fall.
-				else if ((physicall.collisionFlags & CollisionFlags.Above) > 0)
+				
+				else if ((allCollisions & TOP)  > 0)
 				{
 					Debug.Log("Bonked Head, falling");
 					newSpeed = 0;
 					now = state.FALLING;
 				}
+				
 				currentMovement.y = newSpeed;
-				physicall.Move(currentMovement);
+				Debug.Log("Jumping at: " + currentMovement.y.ToString());
+				
 			}
 		}
 		
@@ -101,26 +144,118 @@ public class Player : MonoBehaviour {
 			}
 			
 			//hitting the ground is a good time to stop falling
-			if(physicall.isGrounded)
+			//if(isGrounded)
+			if(((CharacterController)this.GetComponent("CharacterController")).isGrounded)
 			{
 				now = state.SETTOJUMP;
+				newSpeed = 0;
 			}
 			currentMovement.y = newSpeed;
-			physicall.Move(currentMovement);
+			Debug.Log("Falling at: " + currentMovement.y.ToString());
+			
+			if(!nearBar && state2 == secondary.RELEASED)
+			{
+				Debug.Log("...and Reset!");
+				state2 = secondary.NONE;
+			}
 		}
+		
+		else if( now == state.GRAPPLED)
+		{
+			//for testing purposes...
+			//assuming lateral movement
+			currentMovement.y = 0;
+			currentMovement.z = 0;
+			
+			Debug.Log("GRABBED");
+			if( Input.GetMouseButtonDown(1))
+			{
+				Debug.Log("released!");
+				state2 = secondary.RELEASED;
+				now = state.FALLING;
+			}
+			
+			//end of the bar!
+			if(transform.position.x > barEnd.transform.position.x)
+			{
+				now = state.FALLING;
+			}
+		}
+		
+		else if(now == state.SETTOJUMP)
+		{
+			state2 = secondary.NONE;
+			
+		}
+		
+		
+		
+		//this.transform.position += currentMovement * Time.deltaTime;
+		CharacterController mover = (CharacterController)this.GetComponent("CharacterController");
+		mover.Move(currentMovement * Time.deltaTime);
+		
+		Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
+		//physicall.velocity = currentMovement * Time.deltaTime;
+		//Debug.Log("actually movintg: " + (physicall.position + currentMovement * Time.deltaTime).ToString());
+		
+		//physicall.AddForce(currentMovement);
 				
 		
 		last = now;
 		
+
+			
 	}
 	
-	public void handOverBar(bool state)
+
+	
+	public void overBar(bool state, Transform Start, Transform End)
 	{
 		nearBar = state;
+		barStart = Start;
+		barEnd = End;
 	}
 	
-	public void overBar(bool state)
+	void OnTriggerExit(Collider other)
 	{
-		bodyBar = state;
+		
+		if(other.tag == "grabbable")
+		{
+			Debug.Log("OUT");
+		}	
+	}
+	
+	void OnCollisionEnter(Collision collision)
+	{
+		allCollisions = 0;
+		onGround = false;
+		Debug.Log("=========================parsing " + collision.contacts.Length.ToString() + "contacts=====================");
+		foreach (ContactPoint i in collision.contacts)
+		{
+			if(i.otherCollider.tag != "grabbable")
+			{
+				float angle = Mathf.Atan2(i.point.y - transform.position.y, i.point.x - transform.position.x);
+				if(angle >= 60 && angle <120)
+				{
+					allCollisions = allCollisions | TOP;
+				}
+				else if(angle >= 120 && angle < 240)
+				{
+					allCollisions = allCollisions | LEFT;
+				}
+				else if (angle >= 240 && angle < 300)
+				{
+					allCollisions = allCollisions | BOTTOM;
+					if(i.otherCollider.tag == "ground")
+					{
+						onGround = true;
+					}
+				}
+				else if (angle >= 300 && angle < 60)
+				{
+					allCollisions = allCollisions | RIGHT;
+				}
+			}
+		}
 	}
 }
