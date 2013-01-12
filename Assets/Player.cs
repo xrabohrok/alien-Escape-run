@@ -71,19 +71,7 @@ public class Player : MonoBehaviour {
 		//	+ mouseLine.origin.ToString());
 		
 		
-		//should I grab a bar?  Where should I stick if I do?
-		if(nearBar && state2 != secondary.RELEASED && now != state.GRAPPLED)
-		{
-			Debug.Log("latched...");
-			Vector3 movement = handLocation.transform.position - barStart.transform.position;
-			currentMovement +=movement;
-			
-			//move the hand to line up with the bar.
-			//TEST: make it go to start
-			
-			//change the state to recognize the gwapplin'
-			now = state.GRAPPLED;
-		}
+
 		
 		//check for click action
 		if(Input.GetMouseButtonDown(0) && (now == state.SETTOJUMP || now == state.GRAPPLED))
@@ -153,6 +141,7 @@ public class Player : MonoBehaviour {
 			currentMovement.y = newSpeed;
 			Debug.Log("Falling at: " + currentMovement.y.ToString());
 			
+			//once away from the bar, allow for bar grab
 			if(!nearBar && state2 == secondary.RELEASED)
 			{
 				Debug.Log("...and Reset!");
@@ -164,8 +153,9 @@ public class Player : MonoBehaviour {
 		{
 			//for testing purposes...
 			//assuming lateral movement
-			currentMovement.y = 0;
-			currentMovement.z = 0;
+			Vector3 slope = barEnd.transform.position - barStart.transform.position;
+			slope.Normalize();
+			currentMovement = goSpeed * slope;
 			
 			Debug.Log("GRABBED");
 			if( Input.GetMouseButtonDown(1))
@@ -186,6 +176,26 @@ public class Player : MonoBehaviour {
 		{
 			state2 = secondary.NONE;
 			
+
+			
+		}
+		
+		if(now == state.JUMPING || now == state.FALLING)
+		{
+			//should I grab a bar?  Where should I stick if I do?
+			if(nearBar && state2 != secondary.RELEASED && now != state.GRAPPLED)
+			{
+				Debug.Log("latched...");
+				Vector3 movement = handLocation.transform.position - Vector3.Lerp(barEnd.transform.position, barStart.transform.position, 
+					(float)((this.transform.position.x - barStart.transform.position.x)/(barEnd.transform.position.x-barStart.transform.position.x)));
+				currentMovement +=movement;
+				
+				//move the hand to line up with the bar.
+				//TEST: make it go to start
+				
+				//change the state to recognize the gwapplin'
+				now = state.GRAPPLED;
+			}
 		}
 		
 		
