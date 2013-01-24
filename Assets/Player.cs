@@ -19,6 +19,7 @@ public class Player : MonoBehaviour {
 	public float upGrav = 9.8f;
 	public float downGrav = 9.8f;
 	public float goSpeed = .5f;
+	public float mouseSpeedControlMax = 10f;
 	public GameObject handLocation;
 	
 	int lastBar = 0; //the player can't grab the last bar they grappled until they are falling
@@ -64,8 +65,6 @@ public class Player : MonoBehaviour {
 		
 		CapsuleCollider physicall = (CapsuleCollider)this.GetComponent("CapsuleCollider");
 		
-		currentMovement.x = goSpeed;
-
 		
 		Ray mouseLine = Camera.mainCamera.ScreenPointToRay(Input.mousePosition);
 		RaycastHit stuff;
@@ -96,6 +95,25 @@ public class Player : MonoBehaviour {
 				
 			}
 		}
+		
+		
+		//try to get the direction of movement from the mouse
+		Vector2 screenHere = Camera.mainCamera.WorldToScreenPoint(this.transform.position);
+		
+		float mouseVector = Input.mousePosition.x - screenHere.x;
+		
+		if(Mathf.Abs(mouseVector) > mouseSpeedControlMax)
+		{
+			//cap the the distance 
+			mouseVector = mouseSpeedControlMax * (mouseVector/Mathf.Abs(mouseVector));
+		}
+		
+		//scale the speed based of of the distance
+		float speedScale = mouseVector/mouseSpeedControlMax;
+		
+		currentMovement.x = goSpeed * speedScale;
+		
+		
 		
 		//the mechanics of jumping
 		if(now == state.JUMPING)
@@ -234,6 +252,8 @@ public class Player : MonoBehaviour {
 		
 		//this.transform.position += currentMovement * Time.deltaTime;
 		CharacterController mover = (CharacterController)this.GetComponent("CharacterController");
+		
+		
 		mover.Move(currentMovement * Time.deltaTime);
 #if DEBUG
 		Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
