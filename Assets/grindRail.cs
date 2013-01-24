@@ -27,7 +27,7 @@ public class grindRail : MonoBehaviour {
 		Debug.Log("Rail Triggered");
 		if(other.tag == "Player")
 		{	
-			temp.overBar(true, start.transform, end.transform);
+			temp.overBar(true, start.transform, end.transform, this.GetInstanceID());
 		}
 	}
 	
@@ -37,7 +37,7 @@ public class grindRail : MonoBehaviour {
 		temp = (Player)(GameObject.Find("ourHero").GetComponent("Player"));
 		if(other.tag == "Player")
 		{
-			temp.overBar(false, start.transform, end.transform);
+			temp.overBar(false, start.transform, end.transform, this.GetInstanceID());
 		}
 	}
 	

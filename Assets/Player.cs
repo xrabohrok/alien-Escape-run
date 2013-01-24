@@ -1,3 +1,5 @@
+//#define DEBUG
+
 using UnityEngine;
 using System.Collections;
 
@@ -18,6 +20,9 @@ public class Player : MonoBehaviour {
 	public float downGrav = 9.8f;
 	public float goSpeed = .5f;
 	public GameObject handLocation;
+	
+	int lastBar = 0; //the player can't grab the last bar they grappled until they are falling
+	int prospectiveBar = -1;
 	
 	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED};
 	enum secondary {NONE,SHOT, RELEASED};
@@ -84,7 +89,9 @@ public class Player : MonoBehaviour {
 				{
 					//jump
 					now = state.JUMPING;
+#if DEBUG
 					Debug.Log(stuff.transform.tag.ToString());
+#endif
 				}
 				
 			}
@@ -110,13 +117,17 @@ public class Player : MonoBehaviour {
 				
 				else if ((allCollisions & TOP)  > 0)
 				{
+#if DEBUG
 					Debug.Log("Bonked Head, falling");
+#endif
 					newSpeed = 0;
 					now = state.FALLING;
 				}
 				
 				currentMovement.y = newSpeed;
+#if DEBUG
 				Debug.Log("Jumping at: " + currentMovement.y.ToString());
+#endif
 				
 			}
 		}
@@ -139,12 +150,16 @@ public class Player : MonoBehaviour {
 				newSpeed = 0;
 			}
 			currentMovement.y = newSpeed;
+#if DEBUG
 			Debug.Log("Falling at: " + currentMovement.y.ToString());
+#endif
 			
 			//once away from the bar, allow for bar grab
 			if(!nearBar && state2 == secondary.RELEASED)
 			{
+#if DEBUG
 				Debug.Log("...and Reset!");
+#endif
 				state2 = secondary.NONE;
 			}
 		}
@@ -156,39 +171,56 @@ public class Player : MonoBehaviour {
 			Vector3 slope = barEnd.transform.position - barStart.transform.position;
 			slope.Normalize();
 			currentMovement = goSpeed * slope;
-			
+#if DEBUG
 			Debug.Log("GRABBED");
+#endif
 			if( Input.GetMouseButtonDown(1))
 			{
+#if DEBUG
 				Debug.Log("released!");
+#endif
 				state2 = secondary.RELEASED;
 				now = state.FALLING;
 			}
 			
 			//end of the bar!
-			if(transform.position.x > barEnd.transform.position.x)
+			if(transform.position.x > barEnd.transform.position.x || transform.position.x < barStart.position.x)
 			{
 				now = state.FALLING;
 			}
+			
+			lastBar = prospectiveBar;
 		}
 		
 		else if(now == state.SETTOJUMP)
 		{
 			state2 = secondary.NONE;
-			
-
+			if (!((CharacterController)this.GetComponent("CharacterController")).isGrounded)
+			{
+				now = state.FALLING;
+			}
 			
 		}
 		
-		if(now == state.JUMPING || now == state.FALLING)
+		if (now == state.JUMPING && prospectiveBar == lastBar)
+		{
+			//do nothing, basically	
+		}
+		else if(now == state.JUMPING || now == state.FALLING)
 		{
 			//should I grab a bar?  Where should I stick if I do?
 			if(nearBar && state2 != secondary.RELEASED && now != state.GRAPPLED)
 			{
+#if DEBUG
 				Debug.Log("latched...");
-				Vector3 movement = handLocation.transform.position - Vector3.Lerp(barEnd.transform.position, barStart.transform.position, 
-					(float)((this.transform.position.x - barStart.transform.position.x)/(barEnd.transform.position.x-barStart.transform.position.x)));
-				currentMovement +=movement;
+#endif
+				
+				Vector3 tempstuff = new Vector3(0,0,0); 
+				tempstuff = Vector3.Lerp(barStart.position, barEnd.position, (this.transform.position.x - barStart.transform.position.x)/(barEnd.transform.position.x - barStart.transform.position.x));
+				tempstuff -= transform.Find("handLocation").transform.position - this.transform.position;
+				
+				//Debug.Log("at: " + this.transform.position.ToString() + " Warping to: " + tempstuff.ToString()); 
+				this.transform.position = tempstuff;
 				
 				//move the hand to line up with the bar.
 				//TEST: make it go to start
@@ -203,8 +235,9 @@ public class Player : MonoBehaviour {
 		//this.transform.position += currentMovement * Time.deltaTime;
 		CharacterController mover = (CharacterController)this.GetComponent("CharacterController");
 		mover.Move(currentMovement * Time.deltaTime);
-		
+#if DEBUG
 		Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
+#endif
 		//physicall.velocity = currentMovement * Time.deltaTime;
 		//Debug.Log("actually movintg: " + (physicall.position + currentMovement * Time.deltaTime).ToString());
 		
@@ -219,20 +252,18 @@ public class Player : MonoBehaviour {
 	
 
 	
-	public void overBar(bool state, Transform Start, Transform End)
+	public void overBar(bool state, Transform Start, Transform End, int barID)
 	{
 		nearBar = state;
 		barStart = Start;
 		barEnd = End;
+		prospectiveBar = barID;
 	}
 	
 	void OnTriggerExit(Collider other)
 	{
 		
-		if(other.tag == "grabbable")
-		{
-			Debug.Log("OUT");
-		}	
+
 	}
 	
 	void OnCollisionEnter(Collision collision)
