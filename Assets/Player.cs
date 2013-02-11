@@ -12,6 +12,8 @@ public class Player : MonoBehaviour {
 	
 	int allCollisions = 0;
 	
+	public Transform launcher;
+	
 	
 	public ParticleSystem emitter;
 	public float JumpForce = 1f;
@@ -21,6 +23,8 @@ public class Player : MonoBehaviour {
 	public float goSpeed = .5f;
 	public float mouseSpeedControlMax = 10f;
 	public GameObject handLocation;
+	public float grappleSpeed = .05f;
+	public float grappleRange =  15;
 	
 	int lastBar = 0; //the player can't grab the last bar they grappled until they are falling
 	int prospectiveBar = -1;
@@ -74,12 +78,27 @@ public class Player : MonoBehaviour {
 		//Debug.Log("Grabber is layer :" + (LayerMask.NameToLayer("grabber").ToString())+ " from " + Camera.mainCamera.ToString() + "originating"
 		//	+ mouseLine.origin.ToString());
 		
+		//try to get the direction of movement from the mouse
+		Vector2 screenHere = Camera.mainCamera.WorldToScreenPoint(this.transform.position);
 		
-
+		float mouseVector = Input.mousePosition.x - screenHere.x;
+		
+		//get the mouse position 
+		
+		Vector3 mouseStuff = Camera.mainCamera.ScreenToWorldPoint(Input.mousePosition);
+		mouseStuff.z = this.transform.position.z;
+		Debug.Log(mouseStuff.ToString());
 		
 		//check for click action
-		if(Input.GetMouseButtonDown(0) && (now == state.SETTOJUMP || now == state.GRAPPLED))
+		if(Input.GetMouseButtonDown(0))// && (now == state.SETTOJUMP || now == state.GRAPPLED))
 		{
+			
+			Transform temp = (Transform)Object.Instantiate(launcher);
+			
+			Grapple grabby = (Grapple)temp.GetComponent("Grapple");
+			grabby.passInfo(grappleRange, grappleSpeed, handLocation, mouseStuff);
+			
+			/*
 			//check for hit
 			if(Physics.Raycast(mouseLine, out stuff, Mathf.Infinity))
 			{
@@ -92,15 +111,13 @@ public class Player : MonoBehaviour {
 					Debug.Log(stuff.transform.tag.ToString());
 #endif
 				}
-				
+					
 			}
+			*/
 		}
 		
 		
-		//try to get the direction of movement from the mouse
-		Vector2 screenHere = Camera.mainCamera.WorldToScreenPoint(this.transform.position);
 		
-		float mouseVector = Input.mousePosition.x - screenHere.x;
 		
 		if(Mathf.Abs(mouseVector) > mouseSpeedControlMax)
 		{
