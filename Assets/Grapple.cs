@@ -5,7 +5,7 @@ public class Grapple : MonoBehaviour {
 
 	public float range= .1f;
 	public float rate = .1f;
-	public float returnRate = .1f;
+	public float returnRate = .01f;
 	public float staleRate = 2;
 	
 	public GameObject startThing;
@@ -47,7 +47,7 @@ public class Grapple : MonoBehaviour {
 			
 			if(hold >= staleRate)
 			{
-				Object.Destroy(this);
+				Object.Destroy(this.gameObject);
 			}
 		}
 		
@@ -58,22 +58,24 @@ public class Grapple : MonoBehaviour {
 			if(!returning)
 			{
 				distance += rate;
-				this.transform.position = Vector3.Lerp(this.transform.position, destinationVector, distance);
+				this.transform.position = Vector3.Lerp(startThing.transform.position, destinationVector, distance);
 				
 				if( distance >= 1)
 				{
+					Debug.Log("flipped!");
 					returning = true;
 					distance = 0;
 				}
 			}
 			else
 			{
-				distance += rate;
-				this.transform.position = Vector3.Lerp( destinationVector, this.transform.position,  distance);
+				Debug.Log(destinationVector.ToString());
+				distance += returnRate;
+				this.transform.position = Vector3.Lerp( this.transform.position, startThing.transform.position,  distance);
 				
 				if( distance >= 1)
 				{
-					Object.Destroy(this);
+					Destroy(this.gameObject);
 				}
 			}
 				

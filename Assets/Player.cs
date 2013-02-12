@@ -36,6 +36,8 @@ public class Player : MonoBehaviour {
 	state last;
 	secondary state2 = secondary.NONE;
 	
+	Grapple grabby;
+	
 	Vector3 currentMovement;
 	
 	bool nearBar = false;
@@ -53,6 +55,8 @@ public class Player : MonoBehaviour {
 	Transform barStart;
 	Transform barEnd;
 	
+	int mouselayermask;
+	
 	// Use this for initialization
 	void Start () {
 		last = now;
@@ -60,6 +64,9 @@ public class Player : MonoBehaviour {
 		
 		//log old hand local location
 		oldHandLoc = handLocation.transform.localPosition;
+		
+		mouselayermask = 1 << LayerMask.NameToLayer("mousePlane");
+		Debug.Log(mouselayermask.ToString());
 			
 	}
 	
@@ -83,37 +90,30 @@ public class Player : MonoBehaviour {
 		
 		float mouseVector = Input.mousePosition.x - screenHere.x;
 		
-		//get the mouse position 
-		
-		Vector3 mouseStuff = Camera.mainCamera.ScreenToWorldPoint(Input.mousePosition);
-		mouseStuff.z = this.transform.position.z;
-		Debug.Log(mouseStuff.ToString());
+
 		
 		//check for click action
 		if(Input.GetMouseButtonDown(0))// && (now == state.SETTOJUMP || now == state.GRAPPLED))
-		{
+		{	
 			
-			Transform temp = (Transform)Object.Instantiate(launcher);
-			
-			Grapple grabby = (Grapple)temp.GetComponent("Grapple");
-			grabby.passInfo(grappleRange, grappleSpeed, handLocation, mouseStuff);
-			
-			/*
 			//check for hit
-			if(Physics.Raycast(mouseLine, out stuff, Mathf.Infinity))
+			if(Physics.Raycast(mouseLine, out stuff, Mathf.Infinity, mouselayermask))
 			{
 				//check of type
-				if(stuff.transform.tag == "grabbable")
+				if(stuff.transform.tag == "mousePlane")
 				{
 					//jump
-					now = state.JUMPING;
+					//now = state.JUMPING;
+					Transform temp = (Transform)Object.Instantiate(launcher);
+					grabby = (Grapple)temp.GetComponent("Grapple");
+					grabby.passInfo(grappleRange, grappleSpeed, handLocation, stuff.point);
 #if DEBUG
 					Debug.Log(stuff.transform.tag.ToString());
 #endif
 				}
 					
 			}
-			*/
+			
 		}
 		
 		
