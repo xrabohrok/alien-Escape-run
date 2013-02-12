@@ -40,6 +40,7 @@ public class Grapple : MonoBehaviour {
 		
 		
 		
+		
 		if(!setup)
 		{
 			//holding pattern
@@ -53,12 +54,17 @@ public class Grapple : MonoBehaviour {
 		
 		else
 		{
+			Vector3 tempDir = destinationVector;
+			
+			Vector3 rateVector = (tempDir-this.transform.position);
+			rateVector.Normalize();
+			rateVector *= range;
 			Vector3 startLocation = startThing.transform.position;
 			
 			if(!returning)
 			{
 				distance += rate;
-				this.transform.position = Vector3.Lerp(startThing.transform.position, destinationVector, distance);
+				this.transform.position = Vector3.Lerp(startThing.transform.position, rateVector, distance);
 				
 				if( distance >= 1)
 				{
@@ -69,7 +75,7 @@ public class Grapple : MonoBehaviour {
 			}
 			else
 			{
-				Debug.Log(destinationVector.ToString());
+				//Debug.Log(destinationVector.ToString());
 				distance += returnRate;
 				this.transform.position = Vector3.Lerp( this.transform.position, startThing.transform.position,  distance);
 				
