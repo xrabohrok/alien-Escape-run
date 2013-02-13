@@ -22,12 +22,21 @@ public class grindRail : MonoBehaviour {
 	
 	void OnTriggerEnter(Collider other)
 	{
-		Player temp;
-		temp = (Player)(GameObject.Find("ourHero").GetComponent("Player"));
+
+		
 		Debug.Log("Rail Triggered");
 		if(other.tag == "Player")
 		{	
-			temp.overBar(true, start.transform, end.transform, this.GetInstanceID());
+			Player thisPlayer = (Player)(GameObject.Find("ourHero").GetComponent("Player"));
+
+			thisPlayer.overBar(true, start.transform, end.transform, this.GetInstanceID());
+		}
+		else if(other.tag == "grabber")
+		{
+			Grapple thingy;
+			thingy = (Grapple) other.gameObject.GetComponent("Grapple");
+			thingy.snagged(this.GetInstanceID());
+				
 		}
 	}
 	

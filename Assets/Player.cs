@@ -23,13 +23,15 @@ public class Player : MonoBehaviour {
 	public float goSpeed = .5f;
 	public float mouseSpeedControlMax = 10f;
 	public GameObject handLocation;
-	public float grappleSpeed = .05f;
+	public float grappleSpeed = .6f;
+	public float grappleReturnSpeed = .6f;
 	public float grappleRange =  15;
+	public float grappleFloatTime = .8f;
 	
 	int lastBar = 0; //the player can't grab the last bar they grappled until they are falling
 	int prospectiveBar = -1;
 	
-	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED};
+	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED, PULLING};
 	enum secondary {NONE,SHOT, RELEASED};
 	
 	state now = state.SETTOJUMP;
@@ -37,6 +39,9 @@ public class Player : MonoBehaviour {
 	secondary state2 = secondary.NONE;
 	
 	Grapple grabby;
+	Vector3 grappleAnchor;
+	float length = 0;
+	Vector3 grappleOld;
 	
 	Vector3 currentMovement;
 	
@@ -106,7 +111,7 @@ public class Player : MonoBehaviour {
 					//now = state.JUMPING;
 					Transform temp = (Transform)Object.Instantiate(launcher);
 					grabby = (Grapple)temp.GetComponent("Grapple");
-					grabby.passInfo(grappleRange, grappleSpeed, handLocation, stuff.point);
+					grabby.passInfo(grappleRange, grappleSpeed, grappleReturnSpeed, handLocation, stuff.point, grappleFloatTime, this);
 #if DEBUG
 					Debug.Log(stuff.transform.tag.ToString());
 #endif
@@ -264,13 +269,31 @@ public class Player : MonoBehaviour {
 				now = state.GRAPPLED;
 			}
 		}
-		
+		else if(now == state.PULLING)
+		{
+			if(last != state.PULLING)
+			{
+				grappleOld = this.transform.position;	
+			}
+			
+			length += grappleSpeed * Time.deltaTime;
+			
+			this.transform.position = Vector3.Lerp(grappleOld, grappleAnchor, length);
+			
+			if( length >= 1)
+			{
+				length = 0;
+				now = state.FALLING;
+				Destroy(grabby.gameObject);
+				
+			}
+		}
 		
 		
 		//this.transform.position += currentMovement * Time.deltaTime;
 		CharacterController mover = (CharacterController)this.GetComponent("CharacterController");
 		
-		
+		if(!(now == state.PULLING))
 		mover.Move(currentMovement * Time.deltaTime);
 #if DEBUG
 		Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
@@ -335,5 +358,12 @@ public class Player : MonoBehaviour {
 				}
 			}
 		}
+	}
+	
+	public void grabbed(Vector3 destination, Grapple thing)
+	{
+		now = state.PULLING;
+		grappleAnchor = destination;
+		grabby = thing;
 	}
 }
