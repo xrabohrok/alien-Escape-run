@@ -120,6 +120,7 @@ public class Grapple : MonoBehaviour {
 					
 					if( distance >= 1)
 					{
+						owner.retracted();
 						Destroy(this.gameObject);
 					}
 				}

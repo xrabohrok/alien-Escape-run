@@ -42,6 +42,7 @@ public class Player : MonoBehaviour {
 	Vector3 grappleAnchor;
 	float length = 0;
 	Vector3 grappleOld;
+	bool deployed = false;
 	
 	Vector3 currentMovement;
 	
@@ -98,7 +99,7 @@ public class Player : MonoBehaviour {
 
 		
 		//check for click action
-		if(Input.GetMouseButtonDown(0))// && (now == state.SETTOJUMP || now == state.GRAPPLED))
+		if(Input.GetMouseButtonDown(0) && !deployed)// && (now == state.SETTOJUMP || now == state.GRAPPLED))
 		{	
 			
 			//check for hit
@@ -112,6 +113,8 @@ public class Player : MonoBehaviour {
 					Transform temp = (Transform)Object.Instantiate(launcher);
 					grabby = (Grapple)temp.GetComponent("Grapple");
 					grabby.passInfo(grappleRange, grappleSpeed, grappleReturnSpeed, handLocation, stuff.point, grappleFloatTime, this);
+					
+					deployed = true;
 #if DEBUG
 					Debug.Log(stuff.transform.tag.ToString());
 #endif
@@ -210,7 +213,7 @@ public class Player : MonoBehaviour {
 			//assuming lateral movement
 			Vector3 slope = barEnd.transform.position - barStart.transform.position;
 			slope.Normalize();
-			currentMovement = goSpeed * slope;
+			currentMovement = currentMovement.x * slope;
 #if DEBUG
 			Debug.Log("GRABBED");
 #endif
@@ -284,6 +287,7 @@ public class Player : MonoBehaviour {
 			{
 				length = 0;
 				now = state.FALLING;
+				this.retracted();
 				Destroy(grabby.gameObject);
 				
 			}
@@ -365,5 +369,10 @@ public class Player : MonoBehaviour {
 		now = state.PULLING;
 		grappleAnchor = destination;
 		grabby = thing;
+	}
+	
+	public void retracted()
+	{
+		deployed = false;
 	}
 }
