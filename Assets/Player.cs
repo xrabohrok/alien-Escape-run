@@ -14,7 +14,7 @@ public class Player : MonoBehaviour {
 	
 	public Transform launcher;
 	
-	
+	//these numbers are bullshit, by the way.
 	public ParticleSystem emitter;
 	public float JumpForce = 1f;
 	public float DownForce = .1f;
@@ -27,16 +27,18 @@ public class Player : MonoBehaviour {
 	public float grappleReturnSpeed = .6f;
 	public float grappleRange =  15;
 	public float grappleFloatTime = .8f;
+	public float turnRate = .5f;
 	
 	int lastBar = 0; //the player can't grab the last bar they grappled until they are falling
 	int prospectiveBar = -1;
 	
-	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED, PULLING};
+	enum state {  JUMPING, FALLING, SETTOJUMP, GRAPPLED, PULLING, TURNING};
 	enum secondary {NONE,SHOT, RELEASED};
 	
 	state now = state.SETTOJUMP;
 	state last;
 	secondary state2 = secondary.NONE;
+	
 	
 	Grapple grabby;
 	Vector3 grappleAnchor;
@@ -45,6 +47,10 @@ public class Player : MonoBehaviour {
 	bool deployed = false;
 	
 	Vector3 currentMovement;
+	
+	bool facingRight = true;
+	bool oldFacing = true;
+	Vector3 tempRotation;
 	
 	bool nearBar = false;
 	
@@ -78,6 +84,9 @@ public class Player : MonoBehaviour {
 	
 	
 	// Update is called once per frame
+	/// <summary>
+	/// Update this instance.
+	/// </summary>
 	void Update () {
 		
 		CapsuleCollider physicall = (CapsuleCollider)this.GetComponent("CapsuleCollider");
@@ -108,8 +117,7 @@ public class Player : MonoBehaviour {
 				//check of type
 				if(stuff.transform.tag == "mousePlane")
 				{
-					//jump
-					//now = state.JUMPING;
+					//deploy grapple hook
 					Transform temp = (Transform)Object.Instantiate(launcher);
 					grabby = (Grapple)temp.GetComponent("Grapple");
 					grabby.passInfo(grappleRange, grappleSpeed, grappleReturnSpeed, handLocation, stuff.point, grappleFloatTime, this);
@@ -138,10 +146,36 @@ public class Player : MonoBehaviour {
 		
 		currentMovement.x = goSpeed * speedScale;
 		
+		oldFacing = facingRight;
+		if(currentMovement.x > 0)
+		{
+			facingRight = true;
+			if(oldFacing != facingRight)
+				now = state.TURNING;
+		}
+		else if (currentMovement.x < 0)
+		{
+			facingRight = false;
+			if(oldFacing != facingRight)
+				now = state.TURNING;
+		}
 		
 		
 		//the mechanics of jumping
-		if(now == state.JUMPING)
+		//yes, the implication is that you can't turn while jumping
+		if(now == state.TURNING)
+		{
+			currentMovement.x = 0;
+			if(this.transform.localEulerAngles.y < 90 && facingRight)
+			{
+				now = state.FALLING;
+			}
+			else if(this.transform.localEulerAngles.y > 90 && !facingRight)
+			{
+				now = state.FALLING;
+			}
+		}
+		else if(now == state.JUMPING)
 		{
 			if(now != last)
 			{
@@ -294,6 +328,34 @@ public class Player : MonoBehaviour {
 		}
 		
 		
+		
+		if(facingRight && this.transform.localEulerAngles.y != 0)
+		{
+			this.transform.RotateAroundLocal(Vector3.up, -turnRate * Time.deltaTime);
+			if ((this.transform.localEulerAngles.y > 350 || this.transform.localEulerAngles.y < 10) )
+			{
+				tempRotation = this.transform.localEulerAngles;
+				tempRotation.y = 0;
+				this.transform.localEulerAngles = tempRotation;
+				Debug.Log("derp" + this.gameObject.transform.localEulerAngles.ToString());
+			}
+		}
+		else if (!facingRight && !(this.transform.localEulerAngles.y > 170 && this.transform.localEulerAngles.y < 190))
+		{
+			this.transform.RotateAroundLocal(Vector3.up, turnRate * Time.deltaTime);
+			if (this.transform.localEulerAngles.y > 170 && this.transform.localEulerAngles.y < 190)
+			{
+				tempRotation = this.transform.localEulerAngles;
+				tempRotation.y = 180;
+				this.transform.localEulerAngles = tempRotation;
+				Debug.Log(this.gameObject.transform.localEulerAngles.ToString());
+			}
+		}
+		
+		
+				
+		
+		
 		//this.transform.position += currentMovement * Time.deltaTime;
 		CharacterController mover = (CharacterController)this.GetComponent("CharacterController");
 		
@@ -315,7 +377,21 @@ public class Player : MonoBehaviour {
 	}
 	
 
-	
+	/// <summary>
+	/// Lets the player know it could latch onto a bar.
+	/// </summary>
+	/// <param name='state'>
+	/// True if over a bar, False if not
+	/// </param>
+	/// <param name='Start'>
+	/// The location of the start of the bar
+	/// </param>
+	/// <param name='End'>
+	/// The location of th end of the bar
+	/// </param>
+	/// <param name='barID'>
+	/// unityID of bar object
+	/// </param>
 	public void overBar(bool state, Transform Start, Transform End, int barID)
 	{
 		nearBar = state;
@@ -330,6 +406,12 @@ public class Player : MonoBehaviour {
 
 	}
 	
+	/// <summary>
+	/// Raises the collision enter event. Non-Functional
+	/// </summary>
+	/// <param name='collision'>
+	/// Collision.
+	/// </param>
 	void OnCollisionEnter(Collision collision)
 	{
 		allCollisions = 0;
@@ -364,6 +446,16 @@ public class Player : MonoBehaviour {
 		}
 	}
 	
+	/// <summary>
+	/// The grapple Hook will call this function to let the player know where to get pulled towards.  Could also concievably yank the player around
+	/// HL barnacle style
+	/// </summary>
+	/// <param name='destination'>
+	/// Point of attraction
+	/// </param>
+	/// <param name='thing'>
+	/// Grappling hook that is doing the pulling
+	/// </param>
 	public void grabbed(Vector3 destination, Grapple thing)
 	{
 		now = state.PULLING;
@@ -371,6 +463,9 @@ public class Player : MonoBehaviour {
 		grabby = thing;
 	}
 	
+	/// <summary>
+	/// Calling this function frees the player to launch a new grappling hook
+	/// </summary>
 	public void retracted()
 	{
 		deployed = false;
