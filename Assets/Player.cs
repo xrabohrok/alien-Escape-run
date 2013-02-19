@@ -337,7 +337,7 @@ public class Player : MonoBehaviour {
 				tempRotation = this.transform.localEulerAngles;
 				tempRotation.y = 0;
 				this.transform.localEulerAngles = tempRotation;
-				Debug.Log("derp" + this.gameObject.transform.localEulerAngles.ToString());
+				//Debug.Log("derp" + this.gameObject.transform.localEulerAngles.ToString());
 			}
 		}
 		else if (!facingRight && !(this.transform.localEulerAngles.y > 170 && this.transform.localEulerAngles.y < 190))
@@ -362,7 +362,7 @@ public class Player : MonoBehaviour {
 		if(!(now == state.PULLING))
 		mover.Move(currentMovement * Time.deltaTime);
 #if DEBUG
-		Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
+		//Debug.Log(currentMovement.ToString() + " , " + this.transform.position.ToString());
 #endif
 		//physicall.velocity = currentMovement * Time.deltaTime;
 		//Debug.Log("actually movintg: " + (physicall.position + currentMovement * Time.deltaTime).ToString());

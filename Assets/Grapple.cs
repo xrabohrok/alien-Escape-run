@@ -31,6 +31,9 @@ public class Grapple : MonoBehaviour {
 	
 	Vector3 returningFrom;
 	
+	Vector2 sizer;
+	Vector2 launcher;
+	
 	
 	public void passInfo(float Range, float Rate, float ReturnRate, GameObject StartLoc, Vector3 endTarget, float HoldTime, Player me)
 	{
@@ -43,6 +46,8 @@ public class Grapple : MonoBehaviour {
 		returnRate = ReturnRate;
 		
 		owner = me;
+		
+		destinationVector.z = startThing.transform.position.z;
 		
 		
 		
@@ -74,16 +79,33 @@ public class Grapple : MonoBehaviour {
 		{
 			Vector3 tempDir = destinationVector;
 			
-			Vector3 rateVector = (tempDir-this.transform.position);
-			if(rateVector.magnitude > range)
-			{
-				rateVector.Normalize();
-				rateVector *= range;
-				
-			}
-			rateVector += startThing.transform.position;
-				
+			//Vector3 rateVector = (tempDir-this.transform.position);
+			Vector3 rateVector = tempDir;
+			rateVector.z = owner.transform.position.z;
 			
+			
+			
+			sizer.x = rateVector.x;
+			sizer.y = rateVector.y;
+			
+			
+			launcher.x = this.transform.position.x;
+			launcher.y = this.transform.position.y;
+			
+			
+			
+			if((sizer-launcher).magnitude > range)
+			{
+				//Debug.Log("A" + rateVector.ToString());
+				
+				sizer = ((sizer-launcher).normalized * range) + launcher;
+			
+				
+				rateVector.x = sizer.x;
+				rateVector.y = sizer.y;
+				//Debug.Log("B" + rateVector.ToString());
+			}
+
 			
 			if(!grabbed)
 			{
